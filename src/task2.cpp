@@ -23,8 +23,8 @@ int Generator(void)
 	//create strings
 	int string_num=-1;
 	int min_length, max_length;
-	long int RAM = 1<<30;//twice the amount of RAM
-	cout << "please input the number of strings,if you want to exit,please input -1" << endl;
+	double RAM = 1<<30;//twice the amount of RAM
+	cout << "please input the RAM/GB of strings,if you want to exit,please input -1" << endl;
 	cin >> string_num;
 	time_t start, end;
 	while (string_num != -1)
@@ -34,7 +34,8 @@ int Generator(void)
 		cin >> min_length;
 		cout << "please input the max length of strings" << endl;
 		cin >> max_length;
-		if (min_length > max_length || min_length*string_num>RAM)
+		RAM = string_num*RAM*2;
+		if (min_length > max_length || min_length)
 		{
 			cout << "min length > max length or length > RAM*2" << endl;
 			fclose(output_file);
@@ -42,14 +43,14 @@ int Generator(void)
 		}
 		start = time(NULL);
 		//create
-		int *character_length_arr = new int[string_num];//save every character length
-		char **string_arr = new char*[string_num];
+		vector<int>character_length_arr;//save every character length
+		vector<char*> string_arr;
 		int area = max_length - min_length;
 		int progress = 0;
-		int using_ram = 0;
+		int string_count = 0;
 //using openmp to 
 #pragma omp parallel for
-		for (int string_count = 0; string_count < string_num; string_count++)
+		for (int using_ram = 0; using_ram < RAM; string_count++)
 		{
 			int character_length = rand() % area + min_length;
 			while (using_ram + character_length + (string_num - string_count - 1) > RAM)
@@ -57,8 +58,8 @@ int Generator(void)
 				character_length = rand() % area + min_length;
 			}
 			using_ram += character_length;
-			character_length_arr[string_count] = character_length;
-			string_arr[string_count] = new char[character_length];
+			character_length_arr.push_back(character_length);
+			string_arr.push_back(new char[character_length]);
 			for (int character_count = 0; character_count < character_length; character_count++)
 			{
 				string_arr[string_count][character_count] = character_set[rand() % set_size];
@@ -66,11 +67,11 @@ int Generator(void)
 		}
 		//output
 		fprintf(output_file, "%d\n", string_num);
-		for (int string_count = 0; string_count < string_num; string_count++)
+		for (int string_id = 0; string_id < string_count; string_id++)
 		{
-			for (int character_count = 0; character_count < character_length_arr[string_count]; character_count++)
+			for (int character_count = 0; character_count < character_length_arr[string_id]; character_count++)
 			{
-				fprintf(output_file, "%c", string_arr[string_count][character_count]);
+				fprintf(output_file, "%c", string_arr[string_id][character_count]);
 			}
 			fprintf(output_file, "\n");
 		}
