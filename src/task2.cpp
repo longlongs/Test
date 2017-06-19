@@ -1,5 +1,10 @@
 #include "iostream"
 #include <ctime>
+#include <time.h>
+#include <vector>
+#include "string"
+#include "fstream" 
+#include <omp.h>
 using namespace std;
 int Generator(void)
 {
@@ -14,11 +19,14 @@ int Generator(void)
 	}
 
 	FILE *output_file = fopen("../file/output.txt", "w");
+	FILE *summary_file = fopen("../file/Generator_summary.txt", "w");
 	//create strings
 	int string_num=-1;
 	int min_length, max_length;
+	long int RAM = 1<<30;//twice the amount of RAM
 	cout << "please input the number of strings,if you want to exit,please input -1" << endl;
 	cin >> string_num;
+	time_t start, end;
 	while (string_num != -1)
 	{
 		//user input
@@ -26,19 +34,29 @@ int Generator(void)
 		cin >> min_length;
 		cout << "please input the max length of strings" << endl;
 		cin >> max_length;
-		if (min_length > max_length)
+		if (min_length > max_length || min_length*string_num>RAM)
 		{
-			cout << "min length > max length" << endl;
+			cout << "min length > max length or length > RAM*2" << endl;
 			fclose(output_file);
 			exit(0);
 		}
+		start = time(NULL);
 		//create
 		int *character_length_arr = new int[string_num];//save every character length
 		char **string_arr = new char*[string_num];
 		int area = max_length - min_length;
+		int progress = 0;
+		int using_ram = 0;
+//using openmp to 
+#pragma omp parallel for
 		for (int string_count = 0; string_count < string_num; string_count++)
 		{
 			int character_length = rand() % area + min_length;
+			while (using_ram + character_length + (string_num - string_count - 1) > RAM)
+			{
+				character_length = rand() % area + min_length;
+			}
+			using_ram += character_length;
 			character_length_arr[string_count] = character_length;
 			string_arr[string_count] = new char[character_length];
 			for (int character_count = 0; character_count < character_length; character_count++)
@@ -53,11 +71,12 @@ int Generator(void)
 			for (int character_count = 0; character_count < character_length_arr[string_count]; character_count++)
 			{
 				fprintf(output_file, "%c", string_arr[string_count][character_count]);
-				cout<<string_arr[string_count][character_count];
 			}
 			fprintf(output_file, "\n");
-			cout << endl;
 		}
+		end = time(NULL);
+		fprintf(summary_file, "using time is :%ld\n",end-start);
+		fprintf(summary_file, "using openmp for multi-threading\n");
 		//user input
 		cout << "please input the number of strings,if you want to exit,please input -1" << endl;
 		cin >> string_num;
@@ -65,53 +84,54 @@ int Generator(void)
 	fclose(output_file);
 	return 0;
 }
+void  expensiveFunc()
+{
+	clock_t now = clock();
+
+	while (clock() - now < 10);
+}
 int Processor(void)
 {
-	FILE *input_file = fopen("../file/input.txt", "r");
-	fseek(input_file, 0L, SEEK_END);
-	int size = ftell(input_file);
-	char *string_arr = new char[size];
-	int string_count = 0;//save the number of  characters
+	time_t start, end;
+	string file_name;
+	cout << "please input the file name" << endl;
+	cin >> file_name;
+	start = time(NULL);
+	ifstream input_file(file_name);
+	vector<vector<string>>string_arr(52);
+	int string_count = 0;
 	//load file
-	for(int character_count = 0; character_count < size; character_count++)
+	while(!input_file.eof())
 	{
-		fscanf(input_file, "%c", &string_arr[string_count]);
-		string_count++;
-	}
-
-	//sort
-	int sort_arr[52];
-	memset(sort_arr, 0, sizeof(int) * 52);
-	for (int character_count = 0; character_count < string_count; character_count++)
-	{
-		int ascii = (int)string_arr[character_count];//get the ascii of character
+		string str;
+		input_file >> str;
+		int ascii = (int)str[0];//sort the alphabetically
 		if (ascii < 97)
 		{
-			sort_arr[ascii - 65]++;//sort A-Z
+			string_arr.at(ascii - 65).push_back(str);//sort A-Z
 		}
 		else
 		{
-			sort_arr[ascii - 71]++;//sort a-z
+			string_arr.at(ascii - 71).push_back(str);//sort a-z
 		}
-		cout << "progress: " << character_count * 100 / string_count << "%" << endl;
+		string_count++;
+		cout.width(3);
+		cout << "progress: " << string_count << endl;
+		expensiveFunc();
 	}
-
 	//output
 	FILE *output_file = fopen("../file/output.txt", "w");
+	FILE *summary_file = fopen("../file/Processor_summary.txt", "w");
 	for (int i = 0; i < 52; i++)
 	{
-		for (int j = 0; j < sort_arr[i]; j++)
+		for (int j = 0; j < string_arr[i].size(); j++)
 		{
-			if (i < 26)
-			{
-				fprintf(output_file, "%c", j+65);
-			}
-			else
-			{
-				fprintf(output_file, "%c", j + 71);
-			}
+			fprintf(output_file, "%s\n", string_arr.at(i).at(j).c_str());
+			expensiveFunc();
 		}	
 	}
+	end = time(NULL);
+	fprintf(summary_file, "using time is :%ld\n", end - start);
 	return 0;
 }
 int main(void)
