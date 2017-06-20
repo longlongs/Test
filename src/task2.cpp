@@ -21,20 +21,19 @@ int Generator(void)
 	FILE *output_file = fopen("../file/output.txt", "w");
 	FILE *summary_file = fopen("../file/Generator_summary.txt", "w");
 	//create strings
-	int string_num=-1;
+	int key=-1;
 	int min_length, max_length;
-	double RAM = 1<<30;//twice the amount of RAM
-	cout << "please input the RAM/GB of strings,if you want to exit,please input -1" << endl;
-	cin >> string_num;
+	double RAM = 1<<31;//twice the amount of RAM
+	cout << "if you want to exit,please input -1,else input other key" << endl;
+	cin >> key;
 	time_t start, end;
-	while (string_num != -1)
+	while (key != -1)
 	{
 		//user input
 		cout << "please input the min length of strings" << endl;
 		cin >> min_length;
 		cout << "please input the max length of strings" << endl;
 		cin >> max_length;
-		RAM = string_num*RAM*2;
 		if (min_length > max_length || min_length)
 		{
 			cout << "min length > max length or length > RAM*2" << endl;
@@ -53,10 +52,6 @@ int Generator(void)
 		for (int using_ram = 0; using_ram < RAM; string_count++)
 		{
 			int character_length = rand() % area + min_length;
-			while (using_ram + character_length + (string_num - string_count - 1) > RAM)
-			{
-				character_length = rand() % area + min_length;
-			}
 			using_ram += character_length;
 			character_length_arr.push_back(character_length);
 			string_arr.push_back(new char[character_length]);
@@ -66,7 +61,6 @@ int Generator(void)
 			}
 		}
 		//output
-		fprintf(output_file, "%d\n", string_num);
 		for (int string_id = 0; string_id < string_count; string_id++)
 		{
 			for (int character_count = 0; character_count < character_length_arr[string_id]; character_count++)
@@ -79,8 +73,8 @@ int Generator(void)
 		fprintf(summary_file, "using time is :%ld\n",end-start);
 		fprintf(summary_file, "using openmp for multi-threading\n");
 		//user input
-		cout << "please input the number of strings,if you want to exit,please input -1" << endl;
-		cin >> string_num;
+		cout << "if you want to exit,please input -1,else input other key" << endl;
+		cin >> key;
 	}
 	fclose(output_file);
 	return 0;
